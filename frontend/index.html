@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Takvim - Remote Work Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/material_blue.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://npmcdn.com/flatpickr/dist/l10n/tr.js"></script>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        /* Takvim hücrelerinin minimum yüksekliğini ayarla */
+        #calendar-grid > div { min-height: 120px; }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans overflow-hidden">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="w-64 bg-white p-4 border-r transition-all duration-300 flex flex-col shrink-0">
+            <div class="flex items-center mb-6">
+                <img src="./assets/calendar.jpg" alt="Calendar Icon" class="w-8 h-8">
+                <h1 class="text-xl font-bold text-gray-700 ml-2">Asistan</h1>
+            </div>
+            <button id="create-btn" class="flex items-center justify-center w-36 bg-white text-gray-600 py-2 px-4 rounded-full shadow-md hover:shadow-lg border border-gray-200 mb-6 transition-all">
+                <span class="material-icons mr-2">add</span>
+                Oluştur
+            </button>
+            
+            <!-- Navigation Menu -->
+            <nav class="mb-6">
+                <ul class="space-y-2">
+                    <li>
+                        <button id="nav-projects" class="w-full text-left flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors nav-item">
+                            <span class="material-icons text-sm mr-3">folder</span>
+                            <span>Projeler</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button id="nav-tasks" class="w-full text-left flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors nav-item">
+                            <span class="material-icons text-sm mr-3">assignment</span>
+                            <span>Görevler</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button id="nav-events" class="w-full text-left flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors nav-item">
+                            <span class="material-icons text-sm mr-3">event</span>
+                            <span>Etkinlikler</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button id="nav-plans" class="w-full text-left flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors nav-item">
+                            <span class="material-icons text-sm mr-3">lightbulb</span>
+                            <span>Planlarım</span>
+                        </button>
+                    </li>
+                </ul>
+            </nav>
+            
+            <!-- GÖRSEL DÜZELTME: Sidebar içeriğini sarmalayarak taşmaları önle -->
+            <div class="flex-1 overflow-y-auto">
+                <div class="w-full pr-2"><div id="mini-calendar"></div></div>
+                
+                <!-- Mini Projeler Widget -->
+                <div class="mt-6">
+                    <h3 class="text-sm font-semibold text-gray-600 mb-3 px-2">Devam Eden Projeler</h3>
+                    <div id="sidebar-projects" class="space-y-2">
+                        <!-- Mini proje kartları buraya gelecek -->
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col">
+            <!-- Header -->
+            <header class="flex items-center p-4 bg-white border-b shrink-0">
+                <button id="menu-btn" class="text-gray-600 p-2 rounded-full hover:bg-gray-100">
+                    <span class="material-icons">menu</span>
+                </button>
+                <div class="flex items-center ml-4">
+                    <!-- View Toggle Buttons -->
+                    <div class="flex mr-6 border rounded-lg overflow-hidden">
+                        <button id="dashboard-view-btn" class="px-4 py-2 text-sm font-semibold bg-blue-500 text-white hover:bg-blue-600 transition-colors view-toggle-btn">
+                            <span class="material-icons text-sm mr-1">dashboard</span>Dashboard
+                        </button>
+                        <button id="calendar-view-btn" class="px-4 py-2 text-sm font-semibold bg-white text-gray-700 hover:bg-gray-50 border-l transition-colors view-toggle-btn">
+                            <span class="material-icons text-sm mr-1">calendar_month</span>Takvim
+                        </button>
+                        <button id="projects-view-btn" class="px-4 py-2 text-sm font-semibold bg-white text-gray-700 hover:bg-gray-50 border-l transition-colors view-toggle-btn">
+                            <span class="material-icons text-sm mr-1">folder</span>Projeler
+                        </button>
+                    </div>
+                    
+                    <!-- Calendar Controls (only visible in calendar view) -->
+                    <div id="calendar-controls" class="hidden">
+                        <button id="today-btn" class="border px-4 py-2 rounded text-sm font-semibold text-gray-700 hover:bg-gray-50">Bugün</button>
+                        <button id="prev-month-btn" class="ml-4 p-2 rounded-full hover:bg-gray-100">
+                            <span class="material-icons text-gray-600">chevron_left</span>
+                        </button>
+                        <button id="next-month-btn" class="p-2 rounded-full hover:bg-gray-100">
+                            <span class="material-icons text-gray-600">chevron_right</span>
+                        </button>
+                        <h2 id="current-month-year" class="text-xl text-gray-600 ml-4"></h2>
+                    </div>
+                    
+                    <!-- Dashboard Title (only visible in dashboard view) -->
+                    <div id="dashboard-title" class="flex items-center">
+                        <h2 class="text-xl text-gray-600">Bugün - <span id="current-date"></span></h2>
+                        <button id="timer-btn" class="ml-4 p-2 rounded-full hover:bg-gray-100" title="Zamanlayıcı/Kronometre">
+                            <span class="material-icons text-gray-600">timer</span>
+                        </button>
+                        <button id="refresh-dashboard" class="ml-2 p-2 rounded-full hover:bg-gray-100" title="Yenile">
+                            <span class="material-icons text-gray-600">refresh</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Google Calendar Tarzı Tarih Seçici ve Görünüm Anahtarı -->
+                <div class="ml-auto flex items-center space-x-4">
+                    <!-- Day/Week/Month Toggle -->
+                    <div id="date-view-toggle" class="hidden md:flex border rounded-lg overflow-hidden">
+                        <button id="view-day-btn" class="px-3 py-2 text-sm font-semibold bg-white text-gray-700 hover:bg-gray-50 transition-colors">
+                            Gün
+                        </button>
+                        <button id="view-week-btn" class="px-3 py-2 text-sm font-semibold bg-white text-gray-700 hover:bg-gray-50 border-l transition-colors">
+                            Hafta
+                        </button>
+                        <button id="view-month-btn" class="px-3 py-2 text-sm font-semibold bg-white text-gray-700 hover:bg-gray-50 border-l transition-colors">
+                            Ay
+                        </button>
+                    </div>
+                    <!-- Kompakt Tarih Seçici -->
+                    <div class="relative">
+                        <button id="date-picker-btn" class="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg border border-gray-300 bg-white">
+                            <span class="material-icons text-sm mr-2">today</span>
+                            <span id="selected-date-text" class="text-sm font-medium">Bugün</span>
+                            <span class="material-icons text-sm ml-2">arrow_drop_down</span>
+                        </button>
+                        
+                        <!-- Dropdown İçeriği -->
+                        <div id="date-picker-dropdown" class="hidden absolute right-0 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 z-50 w-80">
+                            <!-- Hızlı Seçim Butonları -->
+                            <div class="p-4 border-b border-gray-100">
+                                <div class="flex space-x-2 text-sm">
+                                    <button id="quick-today" class="px-3 py-1 text-blue-600 hover:bg-blue-50 rounded">Bugün</button>
+                                    <button id="quick-yesterday" class="px-3 py-1 text-gray-600 hover:bg-gray-50 rounded">Dün</button>
+                                    <button id="quick-tomorrow" class="px-3 py-1 text-gray-600 hover:bg-gray-50 rounded">Yarın</button>
+                                    <button id="quick-week" class="px-3 py-1 text-gray-600 hover:bg-gray-50 rounded">Bu Hafta</button>
+                                </div>
+                            </div>
+                            
+                            <!-- Tarih Seçici Grid -->
+                            <div class="p-4">
+                                <div class="flex items-center justify-between mb-3">
+                                    <button id="date-prev-month" class="p-1 hover:bg-gray-100 rounded">
+                                        <span class="material-icons text-gray-600">chevron_left</span>
+                                    </button>
+                                    <div class="flex space-x-2">
+                                        <select id="header-month-select" class="px-2 py-1 border rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
+                                            <option value="0">Ocak</option>
+                                            <option value="1">Şubat</option>
+                                            <option value="2">Mart</option>
+                                            <option value="3">Nisan</option>
+                                            <option value="4">Mayıs</option>
+                                            <option value="5">Haziran</option>
+                                            <option value="6">Temmuz</option>
+                                            <option value="7">Ağustos</option>
+                                            <option value="8">Eylül</option>
+                                            <option value="9">Ekim</option>
+                                            <option value="10">Kasım</option>
+                                            <option value="11">Aralık</option>
+                                        </select>
+                                        <select id="header-year-select" class="px-2 py-1 border rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
+                                            <!-- JavaScript ile doldurulacak -->
+                                        </select>
+                                    </div>
+                                    <button id="date-next-month" class="p-1 hover:bg-gray-100 rounded">
+                                        <span class="material-icons text-gray-600">chevron_right</span>
+                                    </button>
+                                </div>
+                                
+                                <!-- Mini Takvim -->
+                                <div id="mini-date-calendar" class="w-full">
+                                    <!-- JavaScript ile oluşturulacak -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sağ Üst Kullanıcı Menüsü -->
+                    <div class="relative">
+                    <button id="user-menu-button" class="flex items-center space-x-2">
+                        <span id="user-menu-username" class="text-sm font-semibold text-gray-700"></span>
+                        <img id="user-menu-avatar" src="./assets/user.jpg" alt="Avatar" class="w-9 h-9 rounded-full object-cover border-2 border-gray-200">
+                    </button>
+                    <!-- Dropdown Menü -->
+                    <div id="user-menu-dropdown" class="hidden absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg z-50 border">
+                        <div class="px-4 py-3 border-b">
+                            <p id="user-menu-name" class="text-sm font-semibold text-gray-800">Kullanıcı Adı</p>
+                            <p id="user-menu-email" class="text-sm text-gray-500 truncate">email@example.com</p>
+                        </div>
+                        <div class="py-1">
+                            <a id="user-menu-edit-btn" href="#" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                <span class="material-icons text-base mr-3">edit</span>
+                                Profili Düzenle
+                            </a>
+                            <a id="user-menu-photo-btn" href="#" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                <span class="material-icons text-base mr-3">photo_camera</span>
+                                Fotoğrafı Değiştir
+                            </a>
+                        </div>
+                        <div class="py-1 border-t">
+                            <button id="user-menu-delete-btn" class="w-full text-left flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+                                <span class="material-icons text-base mr-3">delete_outline</span>
+                                Hesabı Sil
+                            </button>
+                            <button id="user-menu-logout-btn" class="w-full text-left flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                <span class="material-icons text-base mr-3">logout</span>
+                                Çıkış Yap
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Dashboard Content -->
+            <div id="dashboard-content" class="flex-1 overflow-y-auto p-6 bg-gray-50">
+                <!-- Dashboard Header -->
+                <div id="dashboard-title" class="flex items-center justify-between mb-6">
+                    <div class="flex items-center">
+                        <h2 class="text-2xl font-bold text-gray-800 mr-2">Bugün - </h2>
+                        <span id="current-date" class="text-xl text-gray-600"></span>
+                        <button id="refresh-dashboard" class="ml-4 p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors" title="Yenile">
+                            <span class="material-icons">refresh</span>
+                        </button>
+                    </div>
+                    
+                    <!-- Date Selector -->
+                    <div class="flex items-center space-x-3">
+                        <!-- Month Selector -->
+                        <select id="date-month-selector" class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-700">
+                            <option value="0">Ocak</option>
+                            <option value="1">Şubat</option>
+                            <option value="2">Mart</option>
+                            <option value="3">Nisan</option>
+                            <option value="4">Mayıs</option>
+                            <option value="5">Haziran</option>
+                            <option value="6">Temmuz</option>
+                            <option value="7">Ağustos</option>
+                            <option value="8">Eylül</option>
+                            <option value="9">Ekim</option>
+                            <option value="10">Kasım</option>
+                            <option value="11">Aralık</option>
+                        </select>
+
+                        <!-- Day Selector -->
+                        <select id="date-day-selector" class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-700">
+                            <!-- Days will be populated by JavaScript -->
+                        </select>
+
+                        <!-- Year Selector -->
+                        <select id="date-year-selector" class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-700">
+                            <!-- Years will be populated by JavaScript -->
+                        </select>
+
+                        <!-- Today Button -->
+                        <button id="date-today-btn" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                            <span class="material-icons text-sm mr-1">today</span>
+                            Bugün
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Günlük Özet Kartları -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                    <!-- Bugünkü Etkinlikler -->
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-gray-800 flex items-center">
+                                <span class="material-icons text-blue-500 mr-2">event</span>
+                                Bugünkü Etkinlikler
+                            </h3>
+                            <span id="events-count" class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">0</span>
+                        </div>
+                        <div id="today-events" class="space-y-3 max-h-64 overflow-y-auto">
+                            <!-- Etkinlikler buraya yüklenecek -->
+                        </div>
+                    </div>
+
+                    <!-- Bugünkü Görevler -->
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-gray-800 flex items-center">
+                                <span class="material-icons text-green-500 mr-2">assignment</span>
+                                Bugünkü Görevler
+                            </h3>
+                            <span id="tasks-count" class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">0</span>
+                        </div>
+                        <div id="today-tasks" class="space-y-3 max-h-64 overflow-y-auto">
+                            <!-- Görevler buraya yüklenecek -->
+                        </div>
+                    </div>
+
+                    <!-- Bugünkü Planlar -->
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-gray-800 flex items-center">
+                                <span class="material-icons text-purple-500 mr-2">schedule</span>
+                                Bugünkü Planlar
+                            </h3>
+                            <span id="plans-count" class="bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-0.5 rounded">0</span>
+                        </div>
+                        <div id="today-plans" class="space-y-3 max-h-64 overflow-y-auto">
+                            <!-- Planlar buraya yüklenecek -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Zaman Çizelgesi -->
+                <div class="bg-white rounded-lg shadow">
+                    <div class="px-6 py-4 border-b">
+                        <h3 class="text-lg font-semibold text-gray-800 flex items-center">
+                            <span class="material-icons text-orange-500 mr-2">timeline</span>
+                            Bugünkü Zaman Çizelgesi
+                        </h3>
+                        <p class="text-sm text-gray-600 mt-1">Etkinliklerinizi sürükle-bırak ile düzenleyebilirsiniz</p>
+                    </div>
+                    <div class="p-6">
+                        <div id="timeline-container" class="relative">
+                            <!-- Zaman çizelgesi buraya gelecek -->
+                            <div id="timeline-grid" class="space-y-1">
+                                <!-- Saatlik grid buraya oluşturulacak -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Calendar Grid (hidden by default) -->
+            <div id="calendar-view" class="hidden flex-1 overflow-y-auto">
+                <div id="calendar-header" class="grid grid-cols-7 sticky top-0 bg-white z-10 border-b">
+                    <!-- Gün isimleri JS ile oluşturulacak -->
+                </div>
+                <div id="calendar-grid" class="grid grid-cols-7 grid-rows-5 bg-white">
+                    <!-- Takvim hücreleri JS ile oluşturulacak -->
+                </div>
+            </div>
+
+            <!-- Tasks View (hidden by default) -->
+            <div id="tasks-view" class="hidden flex-1 overflow-y-auto p-6 bg-gray-50">
+                <!-- Tasks Header -->
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center">
+                        <h2 class="text-2xl font-bold text-gray-800 mr-4">📋 Görevler</h2>
+                        <span id="total-tasks-count" class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">0</span>
+                    </div>
+                    
+                    <!-- Task Filter Buttons -->
+                    <div class="flex space-x-2">
+                        <button id="task-filter-all" class="px-4 py-2 text-sm font-semibold bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors task-filter-btn active">
+                            Tümü
+                        </button>
+                        <button id="task-filter-pending" class="px-4 py-2 text-sm font-semibold bg-white text-gray-700 border rounded-lg hover:bg-gray-50 transition-colors task-filter-btn">
+                            Beklemede
+                        </button>
+                        <button id="task-filter-in-progress" class="px-4 py-2 text-sm font-semibold bg-white text-gray-700 border rounded-lg hover:bg-gray-50 transition-colors task-filter-btn">
+                            Devam Ediyor
+                        </button>
+                        <button id="task-filter-completed" class="px-4 py-2 text-sm font-semibold bg-white text-gray-700 border rounded-lg hover:bg-gray-50 transition-colors task-filter-btn">
+                            Tamamlanan
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Task Stats Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <div class="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
+                                    <span class="material-icons text-white text-sm">assignment</span>
+                                </div>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-500">Toplam Görev</p>
+                                <p id="task-stats-total" class="text-2xl font-semibold text-gray-900">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <div class="w-8 h-8 bg-yellow-500 rounded-lg flex items-center justify-center">
+                                    <span class="material-icons text-white text-sm">pending</span>
+                                </div>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-500">Beklemede</p>
+                                <p id="task-stats-pending" class="text-2xl font-semibold text-gray-900">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <div class="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                                    <span class="material-icons text-white text-sm">play_arrow</span>
+                                </div>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-500">Devam Ediyor</p>
+                                <p id="task-stats-in-progress" class="text-2xl font-semibold text-gray-900">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <div class="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
+                                    <span class="material-icons text-white text-sm">check_circle</span>
+                                </div>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-500">Tamamlanan</p>
+                                <p id="task-stats-completed" class="text-2xl font-semibold text-gray-900">0</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Tasks Container -->
+                <div id="tasks-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Task cards will be populated by JavaScript -->
+                </div>
+                
+                <!-- Empty State -->
+                <div id="tasks-empty-state" class="hidden text-center py-12">
+                    <div class="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
+                        <span class="material-icons text-gray-400 text-2xl">assignment</span>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Henüz görev yok</h3>
+                    <p class="text-gray-500 mb-6">İlk görevinizi oluşturmak için yukarıdaki "Oluştur" butonunu kullanın.</p>
+                    <button class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                        <span class="material-icons mr-2">add</span>
+                        İlk Görevimi Oluştur
+                    </button>
+                </div>
+            </div>
+
+            <!-- Events View (hidden by default) -->
+            <div id="events-view" class="hidden flex-1 overflow-y-auto p-6 bg-gray-50">
+                <!-- Events Header -->
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center">
+                        <h2 class="text-2xl font-bold text-gray-800 mr-4">📅 Etkinlikler</h2>
+                        <span id="total-events-count" class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">0</span>
+                    </div>
+                    <button id="create-event-btn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center">
+                        <span class="material-icons mr-2">add</span>
+                        Yeni Etkinlik
+                    </button>
+                </div>
+
+                <!-- Events Grid -->
+                <div id="events-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Events will be loaded here -->
+                </div>
+
+                <!-- Empty State -->
+                <div id="events-empty-state" class="hidden text-center py-12">
+                    <div class="text-gray-400 mb-4">
+                        <span class="material-icons" style="font-size: 64px;">event</span>
+                    </div>
+                    <h3 class="text-lg font-medium text-gray-600 mb-2">Henüz etkinlik yok</h3>
+                    <p class="text-gray-500 mb-4">İlk etkinliğinizi oluşturun</p>
+                    <button id="create-first-event-btn" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg">
+                        Etkinlik Oluştur
+                    </button>
+                </div>
+            </div>
+
+            <!-- Projects View (hidden by default) -->
+            <div id="projects-view" class="hidden flex-1 overflow-y-auto p-6 bg-gray-50">
+                <!-- Projects Header -->
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center">
+                        <h2 class="text-2xl font-bold text-gray-800 mr-4">📁 Projeler</h2>
+                        <span id="total-projects-count" class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">0</span>
+                    </div>
+                    
+                    <!-- Filter Buttons -->
+                    <div class="flex space-x-2">
+                        <button id="filter-all" class="px-4 py-2 text-sm font-semibold bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors filter-btn active">
+                            Tümü
+                        </button>
+                        <button id="filter-active" class="px-4 py-2 text-sm font-semibold bg-white text-gray-700 border rounded-lg hover:bg-gray-50 transition-colors filter-btn">
+                            Devam Eden
+                        </button>
+                        <button id="filter-completed" class="px-4 py-2 text-sm font-semibold bg-white text-gray-700 border rounded-lg hover:bg-gray-50 transition-colors filter-btn">
+                            Tamamlanan
+                        </button>
+                        <button id="filter-upcoming" class="px-4 py-2 text-sm font-semibold bg-white text-gray-700 border rounded-lg hover:bg-gray-50 transition-colors filter-btn">
+                            Gelecek
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <div class="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                                    <span class="material-icons text-white text-sm">folder_open</span>
+                                </div>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-500">Toplam Proje</p>
+                                <p id="stats-total" class="text-2xl font-semibold text-gray-900">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <div class="w-8 h-8 bg-yellow-500 rounded-lg flex items-center justify-center">
+                                    <span class="material-icons text-white text-sm">schedule</span>
+                                </div>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-500">Devam Eden</p>
+                                <p id="stats-active" class="text-2xl font-semibold text-gray-900">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <div class="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
+                                    <span class="material-icons text-white text-sm">check_circle</span>
+                                </div>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-500">Tamamlanan</p>
+                                <p id="stats-completed" class="text-2xl font-semibold text-gray-900">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <div class="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center">
+                                    <span class="material-icons text-white text-sm">upcoming</span>
+                                </div>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-500">Gelecek</p>
+                                <p id="stats-upcoming" class="text-2xl font-semibold text-gray-900">0</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Projects Grid -->
+                <div id="projects-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Project cards will be populated by JavaScript -->
+                </div>
+
+                <!-- Empty State -->
+                <div id="projects-empty-state" class="hidden text-center py-12">
+                    <div class="w-24 h-24 mx-auto mb-4 text-gray-400">
+                        <span class="material-icons" style="font-size: 96px;">folder_open</span>
+                    </div>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">Henüz proje yok</h3>
+                    <p class="text-gray-500 mb-6">İlk projenizi oluşturmak için "Oluştur" butonunu kullanın.</p>
+                    <button id="create-first-project-btn" class="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors" data-create="project">
+                        <span class="material-icons mr-2">add</span>
+                        İlk Projeyi Oluştur
+                    </button>
+                </div>
+            </div>
+
+            <!-- Plans View -->
+            <div id="plans-view" class="hidden flex-1 overflow-y-auto p-6 bg-gradient-to-br from-purple-50 to-indigo-100">
+                <!-- Plans Header -->
+                <div class="flex items-center justify-between mb-8">
+                    <div class="flex items-center">
+                        <div class="bg-gradient-to-r from-purple-500 to-indigo-600 p-3 rounded-lg mr-4">
+                            <span class="material-icons text-white text-2xl">lightbulb</span>
+                        </div>
+                        <div>
+                            <h2 class="text-3xl font-bold text-gray-800">Planlarım</h2>
+                            <p class="text-gray-600 mt-1">Hedeflerinizi ve motivasyon notlarınızı yönetin</p>
+                        </div>
+                    </div>
+                    <button id="create-plan-btn" class="bg-gradient-to-r from-purple-500 to-indigo-600 text-white px-6 py-3 rounded-lg hover:from-purple-600 hover:to-indigo-700 transition-all transform hover:scale-105 flex items-center shadow-lg">
+                        <span class="material-icons mr-2">add</span>
+                        Yeni Plan Oluştur
+                    </button>
+                </div>
+
+                <!-- Plans Categories -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                    <!-- Short Term Goals -->
+                    <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-orange-400">
+                        <div class="flex items-center mb-4">
+                            <div class="bg-orange-100 p-2 rounded-lg mr-3">
+                                <span class="material-icons text-orange-500">hourglass_empty</span>
+                            </div>
+                            <h3 class="text-xl font-semibold text-gray-800">Kısa Vadeli Hedefler</h3>
+                        </div>
+                        <div id="short-term-plans" class="space-y-3 max-h-96 overflow-y-auto">
+                            <!-- Short term plans will be populated here -->
+                        </div>
+                    </div>
+
+                    <!-- Long Term Goals -->
+                    <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-400">
+                        <div class="flex items-center mb-4">
+                            <div class="bg-blue-100 p-2 rounded-lg mr-3">
+                                <span class="material-icons text-blue-500">trending_up</span>
+                            </div>
+                            <h3 class="text-xl font-semibold text-gray-800">Uzun Vadeli Hedefler</h3>
+                        </div>
+                        <div id="long-term-plans" class="space-y-3 max-h-96 overflow-y-auto">
+                            <!-- Long term plans will be populated here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Motivational Notes Section -->
+                <div class="bg-gradient-to-r from-green-400 to-teal-500 rounded-xl shadow-lg p-8 text-white mb-8">
+                    <div class="flex items-center mb-6">
+                        <div class="bg-white bg-opacity-20 p-3 rounded-lg mr-4">
+                            <span class="material-icons text-2xl">psychology</span>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-bold">Motivasyon Notlarım</h3>
+                            <p class="text-green-100 mt-1">Kendinizi motive edecek notlar ve gelecek vizyonlarınız</p>
+                        </div>
+                    </div>
+                    <div id="motivational-notes" class="space-y-4">
+                        <!-- Motivational notes will be populated here -->
+                    </div>
+                    <button id="add-motivation-btn" class="mt-6 bg-white bg-opacity-20 text-white px-4 py-2 rounded-lg hover:bg-opacity-30 transition-all flex items-center">
+                        <span class="material-icons mr-2">add</span>
+                        Motivasyon Notu Ekle
+                    </button>
+                </div>
+
+                <!-- Future Vision Section -->
+                <div class="bg-white rounded-xl shadow-lg p-8">
+                    <div class="flex items-center mb-6">
+                        <div class="bg-gradient-to-r from-indigo-500 to-purple-600 p-3 rounded-lg mr-4">
+                            <span class="material-icons text-white text-2xl">visibility</span>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-bold text-gray-800">Gelecek Vizyonum</h3>
+                            <p class="text-gray-600 mt-1">5 yıl sonra nerede olmak istiyorsunuz?</p>
+                        </div>
+                    </div>
+                    <div id="future-vision" class="space-y-4">
+                        <!-- Future vision content will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Plan Creation Modal -->
+    <div id="plan-creation-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg w-full max-w-lg shadow-xl transform transition-all">
+            <div class="flex justify-between items-center p-6 border-b">
+                <h2 id="plan-modal-title" class="text-xl font-bold text-gray-800">Yeni Plan Oluştur</h2>
+                <button id="plan-modal-close" class="text-gray-500 hover:text-gray-800 p-2 rounded-lg hover:bg-gray-50">
+                    <span class="material-icons">close</span>
+                </button>
+            </div>
+            
+            <form id="plan-creation-form" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Plan Türü</label>
+                    <select id="plan-type-select" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                        <option value="short">Kısa Vadeli Hedef (3-6 ay)</option>
+                        <option value="long">Uzun Vadeli Hedef (1-5 yıl)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Hedef Başlığı</label>
+                    <input type="text" id="plan-title-input" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="Örn: Yeni bir dil öğrenmek" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Detaylı Açıklama</label>
+                    <textarea id="plan-description-input" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="Hedefinizi detaylı olarak açıklayın..." required></textarea>
+                </div>
+                <div class="flex justify-end space-x-3 pt-4 border-t">
+                    <button type="button" id="plan-modal-cancel" class="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium">İptal</button>
+                    <button type="submit" class="bg-gradient-to-r from-purple-500 to-indigo-600 text-white px-6 py-2 rounded-lg hover:from-purple-600 hover:to-indigo-700 transition-all">Oluştur</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Motivational Note Modal -->
+    <div id="motivation-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg w-full max-w-lg shadow-xl transform transition-all">
+            <div class="flex justify-between items-center p-6 border-b">
+                <h2 class="text-xl font-bold text-gray-800">Motivasyon Notu Ekle</h2>
+                <button id="motivation-modal-close" class="text-gray-500 hover:text-gray-800 p-2 rounded-lg hover:bg-gray-50">
+                    <span class="material-icons">close</span>
+                </button>
+            </div>
+            
+            <form id="motivation-form" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Motivasyon Notunuz</label>
+                    <textarea id="motivation-text-input" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="Kendinizi motive edecek güzel bir not yazın..." required></textarea>
+                </div>
+                <div class="flex justify-end space-x-3 pt-4 border-t">
+                    <button type="button" id="motivation-modal-cancel" class="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium">İptal</button>
+                    <button type="submit" class="bg-gradient-to-r from-green-400 to-teal-500 text-white px-6 py-2 rounded-lg hover:from-green-500 hover:to-teal-600 transition-all">Ekle</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Future Vision Modal -->
+    <div id="vision-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg w-full max-w-lg shadow-xl transform transition-all">
+            <div class="flex justify-between items-center p-6 border-b">
+                <h2 id="vision-modal-title" class="text-xl font-bold text-gray-800">Gelecek Vizyonum</h2>
+                <button id="vision-modal-close" class="text-gray-500 hover:text-gray-800 p-2 rounded-lg hover:bg-gray-50">
+                    <span class="material-icons">close</span>
+                </button>
+            </div>
+            
+            <form id="vision-form" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">5 Yıl Sonraki Vizyonunuz</label>
+                    <textarea id="vision-text-input" rows="6" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="5 yıl sonra kendinizi nerede görmek istiyorsunuz? Hayallerinizi detaylı olarak yazın..." required></textarea>
+                </div>
+                <div class="flex justify-end space-x-3 pt-4 border-t">
+                    <button type="button" id="vision-modal-cancel" class="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium">İptal</button>
+                    <button type="submit" class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-6 py-2 rounded-lg hover:from-indigo-600 hover:to-purple-700 transition-all">Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Detail Modal (for viewing/editing items) -->
+    <div id="detail-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-lg w-full max-w-lg shadow-xl transform transition-all max-h-[80vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h2 id="detail-modal-title" class="text-xl font-bold text-gray-800">Detay</h2>
+                <div class="flex space-x-2">
+                    <button id="detail-edit-btn" class="text-blue-600 hover:text-blue-800 p-2 rounded-lg hover:bg-blue-50" title="Düzenle">
+                        <span class="material-icons">edit</span>
+                    </button>
+                    <button id="detail-delete-btn" class="text-red-600 hover:text-red-800 p-2 rounded-lg hover:bg-red-50" title="Sil">
+                        <span class="material-icons">delete</span>
+                    </button>
+                    <button id="detail-close-modal" class="text-gray-500 hover:text-gray-800 p-2 rounded-lg hover:bg-gray-50">
+                        <span class="material-icons">close</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Detail Content -->
+            <div id="detail-content" class="space-y-4">
+                <!-- Content will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Timer/Stopwatch Modal -->
+    <div id="timer-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+        <div class="bg-white p-8 rounded-lg w-full max-w-md shadow-xl transform transition-all">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">⏱️ Kronometre</h2>
+                <button id="timer-close-modal" class="text-gray-500 hover:text-gray-800 p-2 rounded-lg hover:bg-gray-50">
+                    <span class="material-icons">close</span>
+                </button>
+            </div>
+            
+            <!-- Timer Display -->
+            <div class="text-center mb-8">
+                <div id="timer-display" class="text-6xl font-mono font-bold text-gray-800 mb-4">
+                    00:00:00
+                </div>
+                <div id="timer-status" class="text-lg text-gray-600">
+                    Durmuş
+                </div>
+            </div>
+            
+            <!-- Timer Controls -->
+            <div class="flex justify-center space-x-4 mb-6">
+                <button id="timer-start" class="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg font-semibold flex items-center">
+                    <span class="material-icons mr-2">play_arrow</span>
+                    Başlat
+                </button>
+                <button id="timer-pause" class="hidden bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-3 rounded-lg font-semibold flex items-center">
+                    <span class="material-icons mr-2">pause</span>
+                    Duraklat
+                </button>
+                <button id="timer-stop" class="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg font-semibold flex items-center">
+                    <span class="material-icons mr-2">stop</span>
+                    Sıfırla
+                </button>
+            </div>
+            
+            <!-- Task Selection (Optional) -->
+            <div class="border-t pt-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Hangi görev için çalışıyorsun? (isteğe bağlı)</label>
+                <select id="timer-task-select" class="w-full border-gray-300 rounded-md shadow-sm">
+                    <option value="">Görev seçin...</option>
+                    <!-- Tasks will be populated by JavaScript -->
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Project Detail Modal -->
+    <div id="project-detail-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-lg w-full max-w-4xl shadow-xl transform transition-all max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <div class="flex items-center">
+                    <span class="material-icons text-2xl text-blue-500 mr-3">folder</span>
+                    <h2 id="project-detail-title" class="text-2xl font-bold text-gray-800">Proje Detayı</h2>
+                </div>
+                <div class="flex space-x-2">
+                    <button id="project-edit-btn" class="text-blue-600 hover:text-blue-800 p-2 rounded-lg hover:bg-blue-50" title="Düzenle">
+                        <span class="material-icons">edit</span>
+                    </button>
+                    <button id="project-delete-btn" class="text-red-600 hover:text-red-800 p-2 rounded-lg hover:bg-red-50" title="Sil">
+                        <span class="material-icons">delete</span>
+                    </button>
+                    <button id="project-detail-close-modal" class="text-gray-500 hover:text-gray-800 p-2 rounded-lg hover:bg-gray-50">
+                        <span class="material-icons">close</span>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Project Info -->
+                <div class="lg:col-span-2">
+                    <div class="bg-gray-50 rounded-lg p-6 mb-6">
+                        <div id="project-detail-info">
+                            <!-- Project details will be populated by JavaScript -->
+                        </div>
+                    </div>
+                    
+                    <!-- Related Tasks -->
+                    <div class="bg-white border rounded-lg">
+                        <div class="px-6 py-4 border-b">
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-lg font-semibold text-gray-800 flex items-center">
+                                    <span class="material-icons text-green-500 mr-2">assignment</span>
+                                    Bağlı Görevler
+                                </h3>
+                                <span id="project-tasks-count" class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">0</span>
+                            </div>
+                        </div>
+                        <div id="project-related-tasks" class="p-6">
+                            <!-- Related tasks will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Sidebar -->
+                <div class="space-y-6">
+                    <!-- Progress Card -->
+                    <div class="bg-white border rounded-lg p-6">
+                        <h4 class="text-lg font-semibold text-gray-800 mb-4">İlerleme</h4>
+                        <div class="space-y-4">
+                            <div>
+                                <div class="flex justify-between text-sm mb-2">
+                                    <span class="text-gray-600">Tamamlanma</span>
+                                    <span id="project-progress-percent" class="font-semibold">0%</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2">
+                                    <div id="project-progress-bar" class="bg-blue-600 h-2 rounded-full" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-4 pt-4 border-t">
+                                <div class="text-center">
+                                    <div id="project-completed-tasks" class="text-2xl font-bold text-green-600">0</div>
+                                    <div class="text-sm text-gray-500">Tamamlanan</div>
+                                </div>
+                                <div class="text-center">
+                                    <div id="project-total-tasks" class="text-2xl font-bold text-blue-600">0</div>
+                                    <div class="text-sm text-gray-500">Toplam</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Timeline Card -->
+                    <div class="bg-white border rounded-lg p-6">
+                        <h4 class="text-lg font-semibold text-gray-800 mb-4">Zaman Çizelgesi</h4>
+                        <div class="space-y-3">
+                            <div class="flex items-center text-sm">
+                                <span class="material-icons text-green-500 mr-2 text-base">play_circle</span>
+                                <span class="text-gray-600">Başlangıç:</span>
+                                <span id="project-start-date" class="ml-auto font-medium">-</span>
+                            </div>
+                            <div class="flex items-center text-sm">
+                                <span class="material-icons text-red-500 mr-2 text-base">stop_circle</span>
+                                <span class="text-gray-600">Bitiş:</span>
+                                <span id="project-end-date" class="ml-auto font-medium">-</span>
+                            </div>
+                            <div class="flex items-center text-sm">
+                                <span class="material-icons text-blue-500 mr-2 text-base">schedule</span>
+                                <span class="text-gray-600">Süre:</span>
+                                <span id="project-duration" class="ml-auto font-medium">-</span>
+                            </div>
+                            <div class="flex items-center text-sm border-t pt-3">
+                                <span class="material-icons text-orange-500 mr-2 text-base">today</span>
+                                <span class="text-gray-600">Kalan Gün:</span>
+                                <span id="project-remaining-days" class="ml-auto font-medium text-orange-600">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detail Modal -->
+    <div id="detail-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+        <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 id="detail-modal-title" class="text-lg font-semibold text-gray-900">Detaylar</h3>
+                    <button id="detail-close-modal" class="text-gray-400 hover:text-gray-600">
+                        <span class="material-icons">close</span>
+                    </button>
+                </div>
+                
+                <div id="detail-content" class="space-y-4">
+                    <!-- Content will be populated by JavaScript -->
+                </div>
+                
+                <div class="flex justify-end space-x-3 mt-6 pt-4 border-t">
+                    <button id="detail-edit-btn" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors flex items-center">
+                        <span class="material-icons text-sm mr-1">edit</span>
+                        Düzenle
+                    </button>
+                    <button id="detail-delete-btn" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors flex items-center">
+                        <span class="material-icons text-sm mr-1">delete</span>
+                        Sil
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Event/Task/Plan Modal -->
+    <div id="event-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+        <div class="relative top-10 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 max-w-2xl shadow-lg rounded-md bg-white max-h-[90vh] overflow-y-auto">
+            <div class="mt-3">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">Yeni Öğe Oluştur</h3>
+                    <button id="close-modal" class="text-gray-400 hover:text-gray-600">
+                        <span class="material-icons">close</span>
+                    </button>
+                </div>
+                
+                <!-- Tab Navigation -->
+                <div id="modal-tabs" class="border-b border-gray-200 mb-4">
+                    <nav class="-mb-px flex space-x-8">
+                        <button data-tab="event" class="tab-btn border-transparent text-gray-500 whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm hover:text-gray-700 hover:border-gray-300">
+                            <span class="material-icons text-sm mr-1">event</span>
+                            Etkinlik
+                        </button>
+                        <button data-tab="task" class="tab-btn border-transparent text-gray-500 whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm hover:text-gray-700 hover:border-gray-300">
+                            <span class="material-icons text-sm mr-1">task</span>
+                            Görev
+                        </button>
+                        <button data-tab="plan" class="tab-btn border-blue-500 text-blue-600 whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+                            <span class="material-icons text-sm mr-1">assignment</span>
+                            Proje
+                        </button>
+                    </nav>
+                </div>
+                
+                <!-- Form Content -->
+                <form id="create-form" class="space-y-4">
+                    <!-- Tab Contents will be populated by JavaScript -->
+                    <div id="event-tab-content" class="tab-content hidden"></div>
+                    <div id="task-tab-content" class="tab-content hidden"></div>
+                    <div id="plan-tab-content" class="tab-content"></div>
+                    
+                    <div class="flex justify-end space-x-3 pt-4 border-t">
+                        <button type="button" id="close-modal-btn" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors">
+                            İptal
+                        </button>
+                        <button type="submit" id="create-submit-btn" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors">
+                            Oluştur
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="edit-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+        <div class="relative top-10 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 max-w-2xl shadow-lg rounded-md bg-white max-h-[90vh] overflow-y-auto">
+            <div class="mt-3">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 id="edit-modal-title" class="text-lg font-semibold text-gray-900">Düzenle</h3>
+                    <button id="edit-close-modal" class="text-gray-400 hover:text-gray-600">
+                        <span class="material-icons">close</span>
+                    </button>
+                </div>
+                
+                <!-- Edit Form Content -->
+                <form id="edit-form" class="space-y-4">
+                    <div id="edit-content">
+                        <!-- Content will be populated by JavaScript -->
+                    </div>
+                    
+                    <div class="flex justify-end space-x-3 pt-4 border-t">
+                        <button type="button" id="edit-cancel-btn" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors">
+                            İptal
+                        </button>
+                        <button type="submit" id="edit-save-btn" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors">
+                            Kaydet
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Drag & Drop Ghost Element -->
+    <div id="drag-ghost" class="hidden fixed pointer-events-none z-50 bg-white border-2 border-dashed border-blue-500 p-2 rounded-lg shadow-lg opacity-80">
+        <div id="drag-ghost-content" class="text-sm text-gray-700">
+            <!-- Ghost content -->
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <script src="./js/api.js"></script>
+    <script src="./js/calendar.js"></script>
+</body>
+</html>

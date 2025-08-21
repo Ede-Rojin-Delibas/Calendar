@@ -1,0 +1,11 @@
+from enum import Enum
+class Status(Enum):
+    NOT_STARTED = "not_started"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+    OVERDUE = "overdue"
+class Priority(Enum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
