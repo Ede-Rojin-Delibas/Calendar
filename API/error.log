@@ -5600,3 +5600,14 @@ INFO:werkzeug:127.0.0.1 - - [21/Aug/2025 07:23:28] "GET /api/calendar/689b641b02
 INFO:werkzeug:127.0.0.1 - - [21/Aug/2025 07:32:37] "OPTIONS /api/calendar/689b641b02d5e3762072b5f7/2025/8 HTTP/1.1" 200 -
 INFO:werkzeug:127.0.0.1 - - [21/Aug/2025 07:32:37] "GET /api/calendar/689b641b02d5e3762072b5f7/2025/8 HTTP/1.1" 200 -
 INFO:werkzeug:127.0.0.1 - - [21/Aug/2025 07:32:39] "GET /api/calendar/689b641b02d5e3762072b5f7/2025/8 HTTP/1.1" 200 -
+INFO:werkzeug:[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5002
+INFO:werkzeug:[33mPress CTRL+C to quit[0m
+INFO:werkzeug: * Restarting with stat
+WARNING:werkzeug: * Debugger is active!
+INFO:werkzeug: * Debugger PIN: 642-846-463
+INFO:werkzeug:127.0.0.1 - - [23/Aug/2025 09:07:27] "OPTIONS /api/auth/login HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [23/Aug/2025 09:07:28] "POST /api/auth/login HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [23/Aug/2025 09:07:29] "OPTIONS /api/calendar/689b641b02d5e3762072b5f7/2025/8 HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [23/Aug/2025 09:07:29] "GET /api/calendar/689b641b02d5e3762072b5f7/2025/8 HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [23/Aug/2025 09:07:29] "GET /uploads/avatars/689b641b02d5e3762072b5f7_1755589759.png HTTP/1.1" 200 -
